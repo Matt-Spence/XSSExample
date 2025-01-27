@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Message Board</title>
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .message { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        nav { background: #f0f0f0; padding: 10px; margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; }
+        nav a:hover { text-decoration: underline; }
+        .controls { margin: 20px 0; }
+        .vulnerability-label {
+            display: inline-block;
+            background: #ff9999;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Classic Board</a>
+        <a href="/dom-xss/">Dynamic Board</a>
+        <a href="/subtle/">User Profile</a>
+    </nav>
+
+    <h1>Dynamic Message Board</h1>
+    
+    <div class="controls">
+        <h2>Message Filter <span class="vulnerability-label">DOM-based XSS</span></h2>
+        <p class="hint">The filter text is inserted using innerHTML. Try: &lt;img src=x onerror=alert('dom-xss')&gt;</p>
+        <input type="text" id="messageFilter" placeholder="Filter messages...">
+        <select id="sortOrder">
+            <option value="asc">Oldest First</option>
+            <option value="desc">Newest First</option>
+        </select>
+    </div>
+
+    <div id="messageList"></div>
+    <p class="hint">Messages are rendered using innerHTML, making them vulnerable to XSS</p>
+
+    <script>
+        // Multiple DOM-based XSS vulnerabilities
+        async function loadMessages() {
+            const response = await fetch('/api/messages');
+            const data = await response.json();
+            const messageList = document.getElementById('messageList');
+            const filter = document.getElementById('messageFilter').value;
+            
+            // Vulnerable! Using innerHTML with template literal
+            messageList.innerHTML = `
+                <div class="filter-status">
+                    Showing messages ${filter ? `filtered by: ${filter}` : ''}
+                </div>
+            `;
+
+            data.messages.forEach(message => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                // Vulnerable! Direct innerHTML assignment
+                div.innerHTML = message.content;
+                messageList.appendChild(div);
+            });
+        }
+
+        document.getElementById('messageFilter').addEventListener('input', loadMessages);
+        document.getElementById('sortOrder').addEventListener('change', loadMessages);
+        loadMessages();
+    </script>
+</body>
+</html> 

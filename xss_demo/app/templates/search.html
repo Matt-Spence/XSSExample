@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Messages</title>
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <h1>Search Messages (Vulnerable to Reflected XSS)</h1>
+    
+    <form method="GET" action="/search">
+        <input type="text" name="q" value="{{ query }}">
+        <button type="submit">Search</button>
+    </form>
+
+    {% if query %}
+    <div>
+        {# Vulnerable! Don't do this in production! #}
+        <h2>Search results for: {{ query|safe }}</h2>
+    </div>
+    {% endif %}
+
+    <p><a href="/">Back to Message Board</a></p>
+</body>
+</html> 

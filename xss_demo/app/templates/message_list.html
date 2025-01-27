@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Message Board</title>
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .message { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        nav { background: #f0f0f0; padding: 10px; margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; }
+        nav a:hover { text-decoration: underline; }
+        .search-box { margin: 20px 0; padding: 10px; background: #f8f8f8; }
+        .user-info { float: right; }
+        .vulnerability-label {
+            display: inline-block;
+            background: #ff9999;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Classic Board</a>
+        <a href="/dom-xss/">Dynamic Board</a>
+        <a href="/subtle/">User Profile</a>
+        <div class="user-info" data-user={{ request.GET.user|default:'guest' }}>
+            <!-- Subtle vulnerability: unquoted attribute -->
+            Logged in as: {{ request.GET.user|default:'guest' }}
+            <span class="vulnerability-label">Unquoted Attribute XSS</span>
+        </div>
+    </nav>
+
+    <h1>Message Board</h1>
+    
+    <!-- Classic stored XSS vulnerability -->
+    <div class="post-section">
+        <h2>Post a Message <span class="vulnerability-label">Stored XSS</span></h2>
+        <p class="hint">Try posting a message containing HTML or JavaScript - it will be stored and executed for every visitor!</p>
+        <form method="POST">
+            {% csrf_token %}
+            <textarea name="content" rows="4" cols="50"></textarea><br>
+            <button type="submit">Post Message</button>
+        </form>
+    </div>
+
+    <!-- Reflected XSS vulnerability -->
+    <div class="search-box">
+        <h2>Search Messages <span class="vulnerability-label">Reflected XSS</span></h2>
+        <p class="hint">The search query is reflected back unescaped. Try searching for: &lt;script&gt;alert('xss')&lt;/script&gt;</p>
+        <form method="GET">
+            <input type="text" name="q" value="{{ request.GET.q|default:'' }}">
+            <button type="submit">Search</button>
+        </form>
+        {% if request.GET.q %}
+            <div>
+                {# Vulnerable! Don't do this in production! #}
+                <p>Results for: {{ request.GET.q|safe }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <h2>Messages:</h2>
+    <p class="hint">These messages may contain malicious content from the Stored XSS vulnerability above</p>
+    {% for message in messages %}
+        <div class="message">
+            {# Stored XSS vulnerability #}
+            {{ message.content|safe }}
+        </div>
+    {% endfor %}
+
+    <script>
+        // DOM XSS vulnerability through URL parameter
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('welcome')) {
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.innerHTML = `Welcome back, ${params.get('welcome')}!`;
+            document.body.insertBefore(welcomeDiv, document.body.firstChild);
+        }
+    </script>
+    <p class="hint">Try adding ?welcome=&lt;img src=x onerror=alert('dom-xss')&gt; to the URL</p>
+</body>
+</html>

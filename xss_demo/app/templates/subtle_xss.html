@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Profile</title>
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .profile-card { margin: 10px 0; padding: 20px; border: 1px solid #ddd; }
+        nav { background: #f0f0f0; padding: 10px; margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; }
+        nav a:hover { text-decoration: underline; }
+        .vulnerability-label {
+            display: inline-block;
+            background: #ff9999;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Classic Board</a>
+        <a href="/dom-xss/">Dynamic Board</a>
+        <a href="/subtle/">User Profile</a>
+    </nav>
+
+    <h1>User Profile</h1>
+
+    <!-- Multiple subtle XSS vulnerabilities -->
+    <div class=profile-card-{{ message_id }}>
+        <h2>Profile Information <span class="vulnerability-label">Multiple Subtle XSS</span></h2>
+        <p class="hint">This page demonstrates several subtle XSS vulnerabilities that don't use the |safe filter</p>
+        
+        <div data-user={{ username }} class="user-info">
+            Welcome back!
+        </div>
+        <p class="hint">⬆️ Unquoted attribute vulnerability. Try: ?user=guest onmouseover=alert(1)</p>
+        
+        <div class="preferences">
+            Theme: {{ theme }}
+            <br>
+            Last Login: {{ last_login }}
+        </div>
+        <p class="hint">⬆️ JavaScript context XSS. Try: ?theme=light'+alert(1)+'</p>
+
+        <p>
+            <a href="?return_url={{ return_url }}">Back to previous page</a>
+        </p>
+        <p class="hint">⬆️ URL parameter injection. Try: ?return_url=javascript:alert(1)</p>
+    </div>
+
+    <script>
+        // Multiple JavaScript context XSS vulnerabilities
+        const userConfig = {
+            theme: '{{ theme }}',
+            name: '{{ username }}',
+            lastLogin: '{{ last_login }}'
+        };
+
+        const profileData = {
+            userId: {{ message_id }},
+            preferences: `${userConfig.theme} mode`
+        };
+
+        document.querySelector('.preferences').innerHTML += 
+            `<br>Current preferences: ${profileData.preferences}`;
+    </script>
+    <p class="hint">⬆️ Template literal injection in JavaScript. Try: ?theme=light}alert(1);{</p>
+</body>
+</html> 
